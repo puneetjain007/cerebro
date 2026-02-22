@@ -30,7 +30,15 @@ Access on http://localhost:9000
 
 You can find the official docker images in the official [docker hub repo](https://hub.docker.com/r/lmenezes/cerebro/).
 
-Visit [cerebro-docker](https://github.com/lmenezes/cerebro-docker) for further information. 
+Visit [cerebro-docker](https://github.com/lmenezes/cerebro-docker) for further information.
+
+#### Docker with RBAC Support
+
+A version with LDAP Group-Based RBAC support is available at [puneet1jain73/cerebro-rbac](https://hub.docker.com/r/puneet1jain73/cerebro-rbac):
+
+```bash
+docker pull puneet1jain73/cerebro-rbac:latest
+``` 
 
 ### Configuration
 
@@ -92,6 +100,86 @@ You can the pass this file as argument using:
 ```bash
  docker run -p 9000:9000 --env-file env-ldap  lmenezes/cerebro
 ```
+
+#### LDAP Role-Based Access Control (RBAC)
+
+Cerebro now supports fine-grained access control using LDAP groups. This allows you to restrict user permissions based on their LDAP group membership.
+
+##### Features
+
+- **Three-tier role hierarchy**:
+  - **Admin**: Full access (cluster settings, delete indices, manage repositories)
+  - **Editor**: Create/update indices, templates, aliases, snapshots (cannot delete indices or modify cluster settings)
+  - **Viewer**: Read-only access to all resources
+
+- **Deny-by-default security**: Users without mapped LDAP groups have no write access
+- **Backward compatible**: Disabled by default, existing deployments unaffected
+- **Comprehensive audit logging**: All operations are logged with user and role information
+
+##### Configuration
+
+Add these environment variables to enable RBAC:
+
+```bash
+# Enable RBAC (default: false)
+CEREBRO_RBAC_ENABLED=true
+
+# Map LDAP groups to Cerebro roles
+# Format: "ldap_group_dn=role;another_group_dn=role"
+# Valid roles: admin, editor, viewer
+CEREBRO_RBAC_ROLE_MAPPING="cn=cerebro-admins,ou=groups,dc=example,dc=com=admin;cn=cerebro-editors,ou=groups,dc=example,dc=com=editor;cn=cerebro-viewers,ou=groups,dc=example,dc=com=viewer"
+
+# Default role for users not in any mapped group (default: none)
+# Options: none (no access), viewer, editor, admin
+CEREBRO_RBAC_DEFAULT_ROLE=none
+```
+
+##### Docker Example with RBAC
+
+```bash
+docker run -d \
+  -p 9000:9000 \
+  -e AUTH_TYPE=ldap \
+  -e LDAP_URL=ldap://ldap.example.com:389 \
+  -e LDAP_BASE_DN=dc=example,dc=com \
+  -e LDAP_USER_TEMPLATE="uid=%s,ou=users,dc=example,dc=com" \
+  -e LDAP_BIND_DN="cn=admin,dc=example,dc=com" \
+  -e LDAP_BIND_PWD=secret \
+  -e CEREBRO_RBAC_ENABLED=true \
+  -e CEREBRO_RBAC_ROLE_MAPPING="cn=cerebro-admins,ou=groups,dc=example,dc=com=admin;cn=cerebro-editors,ou=groups,dc=example,dc=com=editor" \
+  -e CEREBRO_RBAC_DEFAULT_ROLE=viewer \
+  puneet1jain73/cerebro-rbac:latest
+```
+
+##### Role Permissions Matrix
+
+| Operation | Admin | Editor | Viewer |
+|-----------|-------|--------|--------|
+| View cluster/indices | ✅ | ✅ | ✅ |
+| Create/update indices | ✅ | ✅ | ❌ |
+| Create/update templates | ✅ | ✅ | ❌ |
+| Manage aliases | ✅ | ✅ | ❌ |
+| Create snapshots | ✅ | ✅ | ❌ |
+| Delete indices | ✅ | ❌ | ❌ |
+| Delete repositories | ✅ | ❌ | ❌ |
+| Restore snapshots | ✅ | ❌ | ❌ |
+| Cluster settings | ✅ | ❌ | ❌ |
+| Shard allocation | ✅ | ❌ | ❌ |
+
+##### Migration Guide
+
+1. **Deploy with RBAC disabled** (default) - no behavior change
+2. **Test in staging** with `CEREBRO_RBAC_ENABLED=true` and configure group mappings
+3. **Optional**: Set `CEREBRO_RBAC_DEFAULT_ROLE=viewer` for safer rollout
+4. **Deploy to production** and monitor audit logs
+
+##### Troubleshooting
+
+- **403 Forbidden errors**: User lacks required role. Check LDAP group membership and role mappings.
+- **All users denied**: Verify `CEREBRO_RBAC_ROLE_MAPPING` format and LDAP group DNs are correct.
+- **LDAP connection issues**: Check `LDAP_BIND_DN`, `LDAP_BIND_PWD`, and network connectivity.
+
+Check application logs for detailed permission denial information including required roles.
 
 There are some examples of configuration in the [examples folder](./examples).
 
