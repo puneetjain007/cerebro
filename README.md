@@ -28,17 +28,31 @@ Access on http://localhost:9000
 
 ### Docker
 
+#### Standard Version
+
 You can find the official docker images in the official [docker hub repo](https://hub.docker.com/r/lmenezes/cerebro/).
+
+```bash
+docker pull lmenezes/cerebro:latest
+docker run -p 9000:9000 lmenezes/cerebro:latest
+```
 
 Visit [cerebro-docker](https://github.com/lmenezes/cerebro-docker) for further information.
 
-#### Docker with RBAC Support
+#### RBAC-Enabled Version
 
 A version with LDAP Group-Based RBAC support is available at [puneet1jain73/cerebro-rbac](https://hub.docker.com/r/puneet1jain73/cerebro-rbac):
 
 ```bash
 docker pull puneet1jain73/cerebro-rbac:latest
-``` 
+docker run -p 9000:9000 puneet1jain73/cerebro-rbac:latest
+```
+
+**Available tags:**
+- `latest` - Latest RBAC-enabled version
+- `0.9.4-rbac` - Version 0.9.4 with RBAC support
+
+**Docker Hub Repository:** https://hub.docker.com/r/puneet1jain73/cerebro-rbac 
 
 ### Configuration
 
