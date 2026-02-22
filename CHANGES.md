@@ -328,3 +328,56 @@ First cerebro release.
 
 #### Security updates
 - Bump socket.io to 2.4.1
+
+### v0.9.4-rbac - February 22nd, 2026
+
+This is a community-maintained fork with LDAP Group-Based Role-Based Access Control (RBAC) support.
+
+#### New Features
+- **LDAP Group-Based RBAC**: Fine-grained access control using LDAP groups
+  - Three-tier role hierarchy: Admin, Editor, Viewer
+  - Configurable LDAP group-to-role mapping via environment variables
+  - Deny-by-default security model for unmapped groups
+  - Session-based role storage and enforcement
+
+- **Role Permissions**:
+  - **Admin**: Full access including cluster settings, delete indices, manage repositories
+  - **Editor**: Create/update indices, templates, aliases, snapshots (cannot delete or modify cluster settings)
+  - **Viewer**: Read-only access to all resources
+
+- **Configuration**:
+  - `CEREBRO_RBAC_ENABLED` - Enable/disable RBAC (default: false for backward compatibility)
+  - `CEREBRO_RBAC_ROLE_MAPPING` - Map LDAP groups to roles (format: "ldap_group_dn=role;another_group=role")
+  - `CEREBRO_RBAC_DEFAULT_ROLE` - Default role for unmapped users (default: none)
+
+- **Security Enhancements**:
+  - Comprehensive audit logging for all operations with user and role information
+  - HTTP 403 responses with clear error messages for permission denials
+  - Role-based permission checks on 24+ write operations
+  - Protection for critical operations (delete indices, restore snapshots, cluster settings)
+
+#### Enhancements
+- Extended User model to carry roles through request lifecycle
+- Updated ElasticClient interface to accept user context for permission checks
+- Enhanced LDAP authentication to retrieve all user group memberships
+- Backward compatible: existing deployments without RBAC configuration continue working unchanged
+
+#### Technical Changes
+- New services: `RBACService`, `RoleService`, `OperationRestrictionService`
+- New exception type: `InsufficientPermissionsException` for HTTP 403 permission denials
+- Updated 10 controllers to pass user context to ElasticClient operations
+- Session management enhanced to store and retrieve user roles
+- 25+ unit tests for RBAC functionality
+
+#### Docker
+- Multi-stage Dockerfile using Eclipse Temurin JDK 11
+- Available at: https://hub.docker.com/r/puneet1jain73/cerebro-rbac
+- Tags: `latest`, `0.9.4-rbac`
+
+#### Migration Guide
+1. Deploy with RBAC disabled (default) - no behavior change
+2. Test in staging with `CEREBRO_RBAC_ENABLED=true` and configure group mappings
+3. Optional: Set `CEREBRO_RBAC_DEFAULT_ROLE=viewer` for safer rollout
+4. Deploy to production and monitor audit logs
+
+**Note**: This fork maintains full backward compatibility. RBAC is disabled by default and must be explicitly enabled via configuration.
