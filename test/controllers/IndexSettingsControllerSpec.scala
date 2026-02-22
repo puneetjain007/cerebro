@@ -57,7 +57,7 @@ object IndexSettingsControllerSpec extends MockedServices {
         |  "acknowledged":true
         |}
       """.stripMargin)
-    client.updateIndexSettings("foo", body, ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.updateIndexSettings("foo", body, ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val response = route(application, FakeRequest(POST, "/index_settings/update").withBody(Json.obj("host" -> "somehost", "index" -> "foo", "settings" -> body))).get
     ensure(response, 200, expectedResponse)
   }

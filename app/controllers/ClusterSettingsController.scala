@@ -20,7 +20,7 @@ class ClusterSettingsController @Inject()(val authentication: AuthenticationModu
 
   def save = process { request =>
     val settings = request.getObj("settings")
-    client.saveClusterSettings(settings, request.target).map { response =>
+    client.saveClusterSettings(settings, request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }

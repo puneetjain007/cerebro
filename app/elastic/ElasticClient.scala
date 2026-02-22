@@ -1,7 +1,7 @@
 package elastic
 
 import com.google.inject.ImplementedBy
-import models.ElasticServer
+import models.{ElasticServer, User}
 import play.api.libs.json._
 
 import scala.concurrent.Future
@@ -29,19 +29,19 @@ trait ElasticClient {
 
   def nodes(flags: Seq[String], target: ElasticServer): Future[ElasticResponse]
 
-  def closeIndex(index: String, target: ElasticServer): Future[ElasticResponse]
+  def closeIndex(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def openIndex(index: String, target: ElasticServer): Future[ElasticResponse]
+  def openIndex(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def refreshIndex(index: String, target: ElasticServer): Future[ElasticResponse]
+  def refreshIndex(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def flushIndex(index: String, target: ElasticServer): Future[ElasticResponse]
+  def flushIndex(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def forceMerge(index: String, target: ElasticServer): Future[ElasticResponse]
+  def forceMerge(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def clearIndexCache(index: String, target: ElasticServer): Future[ElasticResponse]
+  def clearIndexCache(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def deleteIndex(index: String, target: ElasticServer): Future[ElasticResponse]
+  def deleteIndex(index: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def getIndexSettings(index: String, target: ElasticServer): Future[ElasticResponse]
 
@@ -49,18 +49,18 @@ trait ElasticClient {
 
   def getIndexMapping(index: String, target: ElasticServer): Future[ElasticResponse]
 
-  def putClusterSettings(settings: String, target: ElasticServer): Future[ElasticResponse]
+  def putClusterSettings(settings: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   private def allocationSettings(value: String) =
     s"""{"transient": {"cluster": {"routing": {"allocation": {"enable": \"$value\"}}}}}"""
 
-  def enableShardAllocation(target: ElasticServer): Future[ElasticResponse]
+  def enableShardAllocation(target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def disableShardAllocation(target: ElasticServer, kind: String): Future[ElasticResponse]
+  def disableShardAllocation(target: ElasticServer, kind: String, user: Option[User]): Future[ElasticResponse]
 
   def getShardStats(index: String, target: ElasticServer): Future[ElasticResponse]
 
-  def relocateShard(shard: Int, index: String, from: String, to: String, target: ElasticServer): Future[ElasticResponse]
+  def relocateShard(shard: Int, index: String, from: String, to: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def getIndexRecovery(index: String, target: ElasticServer): Future[ElasticResponse]
 
@@ -68,19 +68,19 @@ trait ElasticClient {
 
   def getAliases(target: ElasticServer): Future[ElasticResponse]
 
-  def updateAliases(changes: Seq[JsValue], target: ElasticServer): Future[ElasticResponse]
+  def updateAliases(changes: Seq[JsValue], target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def getIndexMetadata(index: String, target: ElasticServer): Future[ElasticResponse]
 
-  def createIndex(index: String, metadata: JsValue, target: ElasticServer): Future[ElasticResponse]
+  def createIndex(index: String, metadata: JsValue, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def getIndices(target: ElasticServer): Future[ElasticResponse]
 
   def getTemplates(target: ElasticServer): Future[ElasticResponse]
 
-  def createTemplate(name: String, template: JsValue, target: ElasticServer): Future[ElasticResponse]
+  def createTemplate(name: String, template: JsValue, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def deleteTemplate(name: String, target: ElasticServer): Future[ElasticResponse]
+  def deleteTemplate(name: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def getNodes(target: ElasticServer): Future[ElasticResponse]
 
@@ -93,25 +93,25 @@ trait ElasticClient {
   // Repositories
   def getRepositories(target: ElasticServer): Future[ElasticResponse]
 
-  def createRepository(name: String, repoType: String, settings: JsValue, target: ElasticServer): Future[ElasticResponse]
+  def createRepository(name: String, repoType: String, settings: JsValue, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def deleteRepository(name: String, target: ElasticServer): Future[ElasticResponse]
+  def deleteRepository(name: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   // Snapshots
   def getSnapshots(repository: String, target: ElasticServer): Future[ElasticResponse]
 
-  def deleteSnapshot(repository: String, snapshot: String, target: ElasticServer): Future[ElasticResponse]
+  def deleteSnapshot(repository: String, snapshot: String, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def createSnapshot(repository: String, snapshot: String, ignoreUnavailable: Boolean,
-                     includeGlobalState: Boolean, indices: Option[String], target: ElasticServer): Future[ElasticResponse]
+                     includeGlobalState: Boolean, indices: Option[String], target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   def restoreSnapshot(repository: String, snapshot: String, renamePattern: Option[String],
                       renameReplacement: Option[String], ignoreUnavailable: Boolean, includeAliases: Boolean,
-                      includeGlobalState: Boolean, indices: Option[String], target: ElasticServer): Future[ElasticResponse]
+                      includeGlobalState: Boolean, indices: Option[String], target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def saveClusterSettings(settings: JsValue, target: ElasticServer): Future[ElasticResponse]
+  def saveClusterSettings(settings: JsValue, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
-  def updateIndexSettings(index: String, settings: JsValue, target: ElasticServer): Future[ElasticResponse]
+  def updateIndexSettings(index: String, settings: JsValue, target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
   // Cat requests
   def catRequest(api: String, target: ElasticServer): Future[ElasticResponse]
@@ -119,6 +119,6 @@ trait ElasticClient {
   // Cat master
   def catMaster(target: ElasticServer): Future[ElasticResponse]
 
-  def executeRequest(method: String, path: String, data: Option[JsValue], target: ElasticServer): Future[ElasticResponse]
+  def executeRequest(method: String, path: String, data: Option[JsValue], target: ElasticServer, user: Option[User]): Future[ElasticResponse]
 
 }

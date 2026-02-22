@@ -15,7 +15,10 @@ final class AuthAction(auth: AuthenticationModule, redirect: Boolean, override v
   def invokeBlock[A](request: Request[A], block: (AuthRequest[A]) => Future[Result]) = {
     if (auth.isEnabled) {
       request.session.get(AuthAction.SESSION_USER).map { username =>
-        block(new AuthRequest(Some(User(username)), request))
+        val roles = request.session.get(AuthAction.SESSION_ROLES)
+          .map(_.split(",").toSet)
+          .getOrElse(Set.empty[String])
+        block(new AuthRequest(Some(User(username, roles)), request))
       }.getOrElse {
         if (redirect) {
           Future.successful(
@@ -36,6 +39,7 @@ final class AuthAction(auth: AuthenticationModule, redirect: Boolean, override v
 object AuthAction {
 
   private[controllers] val SESSION_USER = "username"
+  private[controllers] val SESSION_ROLES = "roles"
   private[controllers] val REDIRECT_URL = "redirect"
 
 }

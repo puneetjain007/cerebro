@@ -45,13 +45,16 @@ class AuthController @Inject()(system: ActorSystem,
       },
       creds => {
         authentication.authentication(creds.user, creds.password) match {
-          case Some(username) =>
+          case Some(user) =>
             val resp =
               request.session.get(AuthAction.REDIRECT_URL) match {
                 case Some(url) => Redirect(url, play.api.http.Status.SEE_OTHER)
                 case None => Redirect(routes.Application.index())
               }
-            resp.withSession(AuthAction.SESSION_USER -> username)
+            resp.withSession(
+              AuthAction.SESSION_USER -> user.name,
+              AuthAction.SESSION_ROLES -> user.roles.mkString(",")
+            )
           case None =>
             Redirect(routes.AuthController.index()).flashing(LOGIN_MSG -> "Incorrect username or password")
         }

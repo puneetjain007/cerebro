@@ -22,7 +22,7 @@ class OverviewDataService @Inject()(client: ElasticClient) {
       "_cluster/health",
       s"_nodes/_all/os,jvm?human=true"
     )
-    Future.sequence(apis.map(client.executeRequest("GET", _, None, target))).map { responses =>
+    Future.sequence(apis.map(client.executeRequest("GET", _, None, target, None))).map { responses =>
       responses.zipWithIndex.find(_._1.isInstanceOf[Error]) match {
         case Some((response, idx)) =>
           throw RequestFailedException(apis(idx), response.status, response.body.toString())

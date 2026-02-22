@@ -6,7 +6,7 @@ import models.{CerebroRequest, CerebroResponse, Hosts}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{InjectedController, Result}
-import services.exception.RequestFailedException
+import services.exception.{InsufficientPermissionsException, RequestFailedException}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -25,6 +25,12 @@ trait BaseController extends InjectedController with AuthSupport {
   final def process(processor: RequestProcessor) = AuthAction(authentication).async(parse.json) { request =>
     try {
       processor(CerebroRequest(request, hosts)).recoverWith {
+        case e: InsufficientPermissionsException =>
+          logger.warn(s"Permission denied: user=${e.username}, operation=${e.operation}, required=${e.requiredRole}")
+          Future.successful(CerebroResponse(403, Json.obj(
+            "error" -> e.getMessage,
+            "required_role" -> e.requiredRole
+          )))
         case request: RequestFailedException =>
           Future.successful(CerebroResponse(request.status, Json.obj("error" -> request.getMessage)))
         case NonFatal(e) =>
@@ -32,6 +38,12 @@ trait BaseController extends InjectedController with AuthSupport {
           Future.successful(CerebroResponse(500, Json.obj("error" -> e.getMessage)))
       }
     } catch {
+      case e: InsufficientPermissionsException =>
+        logger.warn(s"Permission denied: user=${e.username}, operation=${e.operation}, required=${e.requiredRole}")
+        Future.successful(CerebroResponse(403, Json.obj(
+          "error" -> e.getMessage,
+          "required_role" -> e.requiredRole
+        )))
       case e: MissingRequiredParamException =>
         Future.successful(CerebroResponse(400, Json.obj("error" -> e.getMessage)))
       case NonFatal(e) =>

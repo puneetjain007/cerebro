@@ -79,7 +79,7 @@ object TemplatesControllerSpec extends MockedServices {
         |{"acknowledged":true}
       """.stripMargin
     )
-    client.deleteTemplate("someTemplate", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.deleteTemplate("someTemplate", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val response = route(application, FakeRequest(POST, "/templates/delete").withBody(Json.obj("host" -> "somehost", "name" -> "someTemplate"))).get
     ensure(response, 200, expectedResponse)
   }
@@ -102,7 +102,7 @@ object TemplatesControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "name" -> "someTemplate", "template" -> template)
-    client.createTemplate("someTemplate", template, ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.createTemplate("someTemplate", template, ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val response = route(application, FakeRequest(POST, "/templates/create").withBody(body)).get
     ensure(response, 200, expectedResponse)
   }

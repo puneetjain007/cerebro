@@ -32,7 +32,7 @@ object RestControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "method" -> "GET", "path" -> "/someesapi")
-    client.executeRequest("GET", "/someesapi", None, ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.executeRequest("GET", "/someesapi", None, ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val response = route(application, FakeRequest(POST, "/rest/request").withBody(body)).get
     ensure(response, 200, expectedResponse)
   }

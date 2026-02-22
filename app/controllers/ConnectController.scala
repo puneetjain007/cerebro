@@ -20,7 +20,7 @@ class ConnectController @Inject()(val authentication: AuthenticationModule,
 
   def connect = AuthAction(authentication)(defaultExecutionContext).async(parse.json) { request =>
     val req = CerebroRequest(request, hosts)
-    elastic.executeRequest("GET", "_cluster/health", None, req.target).map {
+    elastic.executeRequest("GET", "_cluster/health", None, req.target, req.user).map {
       response => CerebroResponse(response.status, response.body)
     }
   }

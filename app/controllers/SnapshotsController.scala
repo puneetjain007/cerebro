@@ -38,7 +38,7 @@ class SnapshotsController @Inject()(val authentication: AuthenticationModule,
   def delete = process { request =>
     val repository = request.get("repository")
     val snapshot = request.get("snapshot")
-    client.deleteSnapshot(repository, snapshot, request.target).map { response =>
+    client.deleteSnapshot(repository, snapshot, request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
@@ -50,7 +50,7 @@ class SnapshotsController @Inject()(val authentication: AuthenticationModule,
     val ignoreUnavailable = request.getBoolean("ignoreUnavailable")
     val includeGlobalState = request.getBoolean("includeGlobalState")
     client.createSnapshot(repository, snapshot, ignoreUnavailable,
-      includeGlobalState, indices, request.target).map {
+      includeGlobalState, indices, request.target, request.user).map {
       response => CerebroResponse(response.status, response.body)
     }
   }
@@ -66,7 +66,7 @@ class SnapshotsController @Inject()(val authentication: AuthenticationModule,
     val indices = request.getAsStringArray("indices").map(_.mkString(","))
     client.restoreSnapshot(repository, snapshot, renamePattern,
       renameReplacement, ignoreUnavailable, includeAliases, includeGlobalState,
-      indices, request.target).map {
+      indices, request.target, request.user).map {
       response => CerebroResponse(response.status, response.body)
     }
   }

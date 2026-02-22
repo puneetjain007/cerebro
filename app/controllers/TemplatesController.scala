@@ -22,7 +22,7 @@ class TemplatesController @Inject()(val authentication: AuthenticationModule,
 
   def delete = process { request =>
     val name = request.get("name")
-    client.deleteTemplate(name, request.target).map { response =>
+    client.deleteTemplate(name, request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
@@ -30,7 +30,7 @@ class TemplatesController @Inject()(val authentication: AuthenticationModule,
   def create = process { request =>
     val name = request.get("name")
     val template = request.getObj("template")
-    client.createTemplate(name, template, request.target).map { response =>
+    client.createTemplate(name, template, request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }

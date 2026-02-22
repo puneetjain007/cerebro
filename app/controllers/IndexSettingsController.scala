@@ -21,7 +21,7 @@ class IndexSettingsController @Inject()(val authentication: AuthenticationModule
   def update = process { request =>
     val index = request.get("index")
     val settings = request.getObj("settings")
-    client.updateIndexSettings(index, settings, request.target).map { response =>
+    client.updateIndexSettings(index, settings, request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }

@@ -16,7 +16,7 @@ class CreateIndexController @Inject()(val authentication: AuthenticationModule,
   def execute = process { request =>
     client.createIndex(
       request.get("index"), request.getObjOpt("metadata").getOrElse(Json.obj()),
-      request.target
+      request.target, request.user
     ).map { response =>
       CerebroResponse(response.status, response.body)
     }

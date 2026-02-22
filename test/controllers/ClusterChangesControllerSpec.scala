@@ -117,9 +117,9 @@ object ClusterChangesControllerSpec extends MockedServices {
         |}
       """.stripMargin
     )
-    client.executeRequest("GET", "_cluster/state/blocks", None, ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, stateResponse))
-    client.executeRequest("GET", "_nodes/transport", None, ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, nodesResponse))
-    client.executeRequest("GET", "_aliases", None, ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, aliasesResponse))
+    client.executeRequest("GET", "_cluster/state/blocks", None, ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, stateResponse))
+    client.executeRequest("GET", "_nodes/transport", None, ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, nodesResponse))
+    client.executeRequest("GET", "_aliases", None, ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, aliasesResponse))
     val response = route(application, FakeRequest(POST, "/cluster_changes").withBody(Json.obj("host" -> "somehost"))).get
     ensure(response, 200, expectedResponse)
   }

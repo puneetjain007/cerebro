@@ -53,7 +53,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.deleteIndex("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.deleteIndex("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/delete_indices").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }
@@ -77,7 +77,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.refreshIndex("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.refreshIndex("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/refresh_indices").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }
@@ -101,7 +101,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.flushIndex("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.flushIndex("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/flush_indices").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }
@@ -125,7 +125,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.clearIndexCache("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.clearIndexCache("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/clear_indices_cache").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }
@@ -149,7 +149,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.forceMerge("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.forceMerge("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/force_merge").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }
@@ -169,7 +169,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.openIndex("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.openIndex("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val response = route(application, FakeRequest(POST, "/overview/open_indices").withBody(body)).get
     ensure(response, 200, expectedResponse)
   }
@@ -189,7 +189,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.closeIndex("a,b,c", ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.closeIndex("a,b,c", ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val response = route(application, FakeRequest(POST, "/overview/close_indices").withBody(body)).get
     ensure(response, 200, expectedResponse)
   }
@@ -246,7 +246,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "indices" -> "a,b,c")
-    client.enableShardAllocation(ElasticServer(Host("somehost", None))) returns Future.successful(Success(200, expectedResponse))
+    client.enableShardAllocation(ElasticServer(Host("somehost", None)), None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/enable_shard_allocation").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }
@@ -270,7 +270,7 @@ object OverviewControllerSpec extends MockedServices {
       """.stripMargin
     )
     val body = Json.obj("host" -> "somehost", "kind" -> "none")
-    client.disableShardAllocation(ElasticServer(Host("somehost", None)), "none") returns Future.successful(Success(200, expectedResponse))
+    client.disableShardAllocation(ElasticServer(Host("somehost", None)), "none", None) returns Future.successful(Success(200, expectedResponse))
     val result = route(application, FakeRequest(POST, "/overview/disable_shard_allocation").withBody(body)).get
     ensure(result, 200, expectedResponse)
   }

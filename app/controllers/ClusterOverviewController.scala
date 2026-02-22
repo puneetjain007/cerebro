@@ -22,55 +22,55 @@ class ClusterOverviewController @Inject()(val authentication: AuthenticationModu
 
   def disableShardAllocation = process { request =>
     val kind = request.get("kind")
-    client.disableShardAllocation(request.target, kind).map { response =>
+    client.disableShardAllocation(request.target, kind, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def enableShardAllocation = process { request =>
-    client.enableShardAllocation(request.target).map { response =>
+    client.enableShardAllocation(request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def closeIndices = process { request =>
-    client.closeIndex(request.get("indices"), request.target).map { response =>
+    client.closeIndex(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def openIndices = process { request =>
-    client.openIndex(request.get("indices"), request.target).map { response =>
+    client.openIndex(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def forceMerge = process { request =>
-    client.forceMerge(request.get("indices"), request.target).map { response =>
+    client.forceMerge(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def clearIndexCache = process { request =>
-    client.clearIndexCache(request.get("indices"), request.target).map { response =>
+    client.clearIndexCache(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def refreshIndex = process { request =>
-    client.refreshIndex(request.get("indices"), request.target).map { response =>
+    client.refreshIndex(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def flushIndex = process { request =>
-    client.flushIndex(request.get("indices"), request.target).map { response =>
+    client.flushIndex(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
 
   def deleteIndex = process { request =>
-    client.deleteIndex(request.get("indices"), request.target).map { response =>
+    client.deleteIndex(request.get("indices"), request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
@@ -103,7 +103,7 @@ class ClusterOverviewController @Inject()(val authentication: AuthenticationModu
     val from = request.get("from")
     val to = request.get("to")
     val server = request.target
-    client.relocateShard(shard, index, from, to, server).map { response =>
+    client.relocateShard(shard, index, from, to, server, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }

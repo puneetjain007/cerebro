@@ -27,7 +27,7 @@ class RestController @Inject()(val authentication: AuthenticationModule,
     val method = request.get("method")
     val path = request.get("path")
     val body = request.getObjOpt("data")
-    client.executeRequest(method, path, body, request.target).map {
+    client.executeRequest(method, path, body, request.target, request.user).map {
       case s: Success =>
         val bodyAsString = body.map {
           case JsString(str) => str

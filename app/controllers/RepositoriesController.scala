@@ -24,14 +24,14 @@ class RepositoriesController @Inject()(val authentication: AuthenticationModule,
     val name = request.get("name")
     val repoType = request.get("type")
     val settings = request.getObj("settings")
-    client.createRepository(name, repoType, settings, request.target).map {
+    client.createRepository(name, repoType, settings, request.target, request.user).map {
       response => CerebroResponse(response.status, response.body)
     }
   }
 
   def delete = process { request =>
     val name = request.get("name")
-    client.deleteRepository(name, request.target).map { response =>
+    client.deleteRepository(name, request.target, request.user).map { response =>
       CerebroResponse(response.status, response.body)
     }
   }
