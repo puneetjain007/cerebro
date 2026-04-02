@@ -1,6 +1,6 @@
 package services
 
-import controllers.auth.ldap.LDAPRBACConfig
+import controllers.auth.RBACConfig
 import models.User
 import play.api.Logging
 import services.exception.InsufficientPermissionsException
@@ -35,7 +35,7 @@ case object AdminOperation extends OperationType {
 @Singleton
 class RBACService @Inject()(
   roleService: RoleService,
-  config: LDAPRBACConfig,
+  config: RBACConfig,
   restrictionService: OperationRestrictionService
 ) extends Logging {
 

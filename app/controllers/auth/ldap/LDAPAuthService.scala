@@ -21,7 +21,7 @@ class LDAPAuthService @Inject()(
 
   private val log = Logger(this.getClass)
 
-  private final val config = new LDAPAuthConfig(globalConfig.get[Configuration]("auth.settings"))
+  private lazy val config = new LDAPAuthConfig(globalConfig.get[Configuration]("auth.settings"))
 
   def checkUserAuth(username: String, password: String): Boolean = {
     val props = new Hashtable[String, String]()

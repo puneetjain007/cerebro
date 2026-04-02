@@ -1,10 +1,11 @@
 package controllers.auth.ldap
 
+import controllers.auth.RBACConfig
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 
 @Singleton
-class LDAPRBACConfig @Inject()(config: Configuration) {
+class LDAPRBACConfig @Inject()(config: Configuration) extends RBACConfig {
 
   private val validRoles = Set("admin", "editor", "viewer")
 

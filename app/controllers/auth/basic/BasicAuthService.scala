@@ -7,7 +7,7 @@ import play.api.Configuration
 
 class BasicAuthService @Inject()(globalConfig: Configuration) extends AuthService {
 
-  private implicit final val config = new BasicAuthConfig(globalConfig.get[Configuration]("auth.settings"))
+  private implicit lazy val config = new BasicAuthConfig(globalConfig.get[Configuration]("auth.settings"))
 
   def auth(username: String, password: String): Option[User] = {
     (username, password) match {

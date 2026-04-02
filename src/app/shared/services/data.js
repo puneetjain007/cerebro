@@ -108,6 +108,11 @@ angular.module('cerebro').factory('DataService', ['$rootScope', '$timeout',
           case 401: // unauthorized in ES instance
             $location.path('/connect').search({host: host, unauthorized: true});
             break;
+          case 403:
+            var permBody = response.data.body;
+            var errMsg = (permBody && permBody.error) ? permBody.error : 'Operation Not Permitted';
+            AlertService.error(errMsg, permBody);
+            break;
           default:
             if (response.data.status >= 200 && response.data.status < 300) {
               success(response.data.body);

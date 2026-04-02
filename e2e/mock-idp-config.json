@@ -1,0 +1,21 @@
+{
+  "interactiveLogin": true,
+  "tokenCallbacks": [
+    {
+      "issuerId": "default",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "grant_type",
+          "match": "authorization_code",
+          "claims": {
+            "sub": "admin-user",
+            "preferred_username": "admin-user",
+            "email": "admin@cerebro.local",
+            "groups": ["cerebro-admins"]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 package services
 
-import controllers.auth.ldap.LDAPRBACConfig
+import controllers.auth.RBACConfig
 import models.User
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class RoleService @Inject()(config: LDAPRBACConfig) {
+class RoleService @Inject()(config: RBACConfig) {
 
   private val roleHierarchy = Map(
     "admin" -> 3,

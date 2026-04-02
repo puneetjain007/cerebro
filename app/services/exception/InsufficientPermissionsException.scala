@@ -5,5 +5,5 @@ case class InsufficientPermissionsException(
   operation: String,
   requiredRole: String
 ) extends RuntimeException(
-  s"User '$username' does not have permission to perform operation '$operation'. Required role: $requiredRole"
+  s"Operation Not Permitted"
 )

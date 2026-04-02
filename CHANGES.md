@@ -372,7 +372,7 @@ This is a community-maintained fork with LDAP Group-Based Role-Based Access Cont
 #### Docker
 - Multi-stage Dockerfile using Eclipse Temurin JDK 11
 - Available at: https://hub.docker.com/r/puneet1jain73/cerebro-rbac
-- Tags: `latest`, `0.9.4-rbac`
+- Tags: `0.9.4-rbac`
 
 #### Migration Guide
 1. Deploy with RBAC disabled (default) - no behavior change
@@ -381,3 +381,77 @@ This is a community-maintained fork with LDAP Group-Based Role-Based Access Cont
 4. Deploy to production and monitor audit logs
 
 **Note**: This fork maintains full backward compatibility. RBAC is disabled by default and must be explicitly enabled via configuration.
+
+### v0.9.5-rbac - April 2nd, 2026
+
+#### New Features
+- **OAuth 2.0 / OIDC Authentication**: Full support for OAuth 2.0 Authorization Code flow with any OIDC-compliant identity provider (Okta, Azure AD, Keycloak, Auth0, etc.)
+  - OIDC auto-discovery via `.well-known/openid-configuration`
+  - JWT signature validation using JWKS (RS256)
+  - Configurable JWT claim extraction for role mapping (array, string, and nested dot-notation claims)
+  - CSRF protection via OAuth state parameter
+  - Support for both `id_token` and `access_token` based authorization
+
+- **File-Based Secret Management**: Secure handling of OAuth client credentials
+  - `OAUTH_CLIENT_ID_FILE` and `OAUTH_CLIENT_SECRET_FILE` support
+  - Compatible with Docker secrets, Kubernetes secret volumes, and HashiCorp Vault Agent
+  - Three-tier resolution: secret file → environment variable → error
+
+- **OAuth + RBAC Integration**: JWT claim values mapped to Cerebro roles using the same RBAC role-mapping system as LDAP
+  - Same `CEREBRO_RBAC_ROLE_MAPPING` format works for both LDAP groups and JWT claim values
+  - Shared `RBACConfig` trait generalizes RBAC across authentication providers
+
+#### Enhancements
+- Login page conditionally shows "Sign in with Identity Provider" button when OAuth is enabled
+- Lazy initialization of auth service configurations prevents Guice failures when inactive auth types lack config
+- Added `nimbus-jose-jwt` (v9.31) dependency for OIDC/JWT validation
+- Java 17 compatibility fixes for Guice reflection (`--add-opens` flags)
+
+#### Configuration
+- `AUTH_TYPE=oauth` enables OAuth/OIDC authentication
+- `OAUTH_DISCOVERY_URI` - OIDC discovery URL
+- `OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET` - OAuth client credentials
+- `OAUTH_CLIENT_ID_FILE` / `OAUTH_CLIENT_SECRET_FILE` - File-based secret paths
+- `OAUTH_REDIRECT_URI` - Callback URL (`http(s)://<host>/auth/callback`)
+- `OAUTH_SCOPES` - OAuth scopes (default: `openid profile email groups`)
+- `OAUTH_TOKEN_TYPE` - Token to validate: `id_token` or `access_token`
+- `OAUTH_CLAIM_MAPPING` - JWT claim containing role/group values (default: `groups`)
+- Optional explicit endpoints: `OAUTH_AUTH_ENDPOINT`, `OAUTH_TOKEN_ENDPOINT`, `OAUTH_JWKS_URI`, `OAUTH_ISSUER`
+
+#### Technical Changes
+- New files: `OAuthConfig`, `OAuthTokenValidator`, `OAuthService`, `OAuthController`, `RBACConfig` trait
+- New routes: `GET /auth/authorize`, `GET /auth/callback`
+- Updated `AuthenticationModule` to support `oauth` auth type
+- Updated `AuthAction` to redirect to OAuth authorize endpoint when OAuth is enabled
+- Updated `AuthController` and `login.scala.html` to support OAuth login UI
+- Generalized `RBACConfig` trait shared by LDAP and OAuth providers
+- 10+ unit tests for OAuth config parsing, JWT claim extraction, and role mapping
+
+#### Docker
+- Available at: https://hub.docker.com/r/puneet1jain73/cerebro-rbac
+- Tags: `latest`, `0.9.5-rbac`
+
+**Note**: Fully backward compatible with v0.9.4-rbac. OAuth is opt-in via `AUTH_TYPE=oauth`. Existing LDAP and Basic Auth deployments are unaffected.
+
+### v0.9.6-rbac - April 2nd, 2026
+
+#### New Features
+- **Bearer Token (JWT) Authentication for API Access**: Cerebro API endpoints now accept `Authorization: Bearer <JWT>` headers for programmatic access when `AUTH_TYPE=oauth` is configured
+  - Enables scripts, CI/CD pipelines, and CLI tools (e.g., curl) to call Cerebro without the browser redirect flow
+  - JWT tokens are validated using the same JWKS keys and claim mapping as the browser OAuth flow
+  - Session cookie authentication is checked first; Bearer token is the fallback — both methods work simultaneously
+  - Invalid or expired Bearer tokens return HTTP 401 with `WWW-Authenticate: Bearer` header
+  - Full RBAC enforcement on Bearer-authenticated requests (roles extracted from JWT claims)
+
+#### Technical Changes
+- Updated `AuthenticationModule` trait and impl to expose `oauthService: Option[OAuthService]` accessor
+- Updated `AuthAction` constructor to accept optional `OAuthService` for Bearer token validation
+- Added `extractBearerUser()` method to `AuthAction` that parses the `Authorization: Bearer` header and delegates to `OAuthService.validateAndExtractUser()`
+- Updated `AuthAction.invokeBlock()` to try Bearer token extraction before falling through to redirect/303
+- Updated `AuthSupport` to pass `oauthService` through to `AuthAction`
+
+#### Compatibility
+- No new configuration required — Bearer auth uses existing OAuth/JWKS settings
+- No new dependencies
+- LDAP and Basic Auth modes are completely unaffected (Bearer support is only active when `AUTH_TYPE=oauth`)
+- All 130 existing tests pass without modification

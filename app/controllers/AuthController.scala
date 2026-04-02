@@ -30,7 +30,11 @@ class AuthController @Inject()(system: ActorSystem,
             Redirect(routes.Application.index())
         }
       }.getOrElse {
-        Ok(views.html.auth.login())
+        if (authentication.isOAuthEnabled) {
+          Redirect(routes.OAuthController.authorize())
+        } else {
+          Ok(views.html.auth.login())
+        }
       }
     } else {
       Redirect(routes.Application.index())

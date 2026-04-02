@@ -8,6 +8,6 @@ import scala.concurrent.ExecutionContext
 trait AuthSupport { self: InjectedController =>
 
   def AuthAction(authentication: AuthenticationModule, redirect: Boolean = false)(implicit ec: ExecutionContext): AuthAction =
-    new AuthAction(authentication, redirect, parse.anyContent)
+    new AuthAction(authentication, redirect, parse.anyContent, authentication.oauthService)
 
 }
