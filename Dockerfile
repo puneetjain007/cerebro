@@ -25,9 +25,9 @@ RUN unzip target/universal/cerebro-*.zip -d /opt && \
 # Runtime stage
 FROM eclipse-temurin:11-jre-jammy
 
-# Install runtime dependencies
+# Install runtime dependencies (curl required for HEALTHCHECK)
 RUN apt-get update && \
-    apt-get install -y bash && \
+    apt-get install -y bash curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Create cerebro user
