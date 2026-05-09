@@ -14,6 +14,26 @@
             "email": "admin@cerebro.local",
             "groups": ["cerebro-admins"]
           }
+        },
+        {
+          "requestParam": "client_id",
+          "match": "cerebro-client",
+          "claims": {
+            "sub": "admin-user",
+            "preferred_username": "admin-user",
+            "email": "admin@cerebro.local",
+            "groups": ["cerebro-admins"]
+          }
+        },
+        {
+          "requestParam": "client_id",
+          "match": "cerebro-viewer",
+          "claims": {
+            "sub": "viewer-user",
+            "preferred_username": "viewer-user",
+            "email": "viewer@cerebro.local",
+            "groups": ["cerebro-viewers"]
+          }
         }
       ]
     }
