@@ -3,7 +3,8 @@ package controllers
 import javax.inject.Inject
 
 import controllers.auth.AuthenticationModule
-import services.AuditService
+import controllers.auth.proxy.ProxyAuthConfig
+import services.{AuditService, RoleService}
 import elastic.{ElasticClient, Error}
 import models.overview.ClusterOverview
 import models.{CerebroResponse, Hosts, ShardStats}
@@ -15,6 +16,8 @@ import scala.concurrent.Future
 class ClusterOverviewController @Inject()(val authentication: AuthenticationModule,
                                           val hosts: Hosts,
                                   val auditService: AuditService,
+                                  val proxyConfig: ProxyAuthConfig,
+                                  val rbacRoleService: RoleService,
                                           val service: OverviewDataService,
                                           client: ElasticClient) extends BaseController {
 

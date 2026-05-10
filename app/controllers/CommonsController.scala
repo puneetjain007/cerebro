@@ -3,7 +3,8 @@ package controllers
 import javax.inject.Inject
 
 import controllers.auth.AuthenticationModule
-import services.AuditService
+import controllers.auth.proxy.ProxyAuthConfig
+import services.{AuditService, RoleService}
 import elastic.{ElasticClient, Error, Success}
 import models.commons.{Indices, Nodes}
 import models.{CerebroResponse, Hosts}
@@ -13,6 +14,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class CommonsController @Inject()(val authentication: AuthenticationModule,
                                   val hosts: Hosts,
                                   val auditService: AuditService,
+                                  val proxyConfig: ProxyAuthConfig,
+                                  val rbacRoleService: RoleService,
                                   client: ElasticClient) extends BaseController {
 
   def indices = process { request =>

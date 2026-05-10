@@ -3,7 +3,8 @@ package controllers
 import javax.inject.Inject
 
 import controllers.auth.AuthenticationModule
-import services.AuditService
+import controllers.auth.proxy.ProxyAuthConfig
+import services.{AuditService, RoleService}
 import elastic.{ElasticClient, Error}
 import models.nodes.Nodes
 import models.{CerebroResponse, Hosts}
@@ -14,6 +15,8 @@ import scala.concurrent.Future
 class NodesController @Inject()(val authentication: AuthenticationModule,
                                 val hosts: Hosts,
                                   val auditService: AuditService,
+                                  val proxyConfig: ProxyAuthConfig,
+                                  val rbacRoleService: RoleService,
                                 client: ElasticClient) extends BaseController {
 
   def index = process { request =>

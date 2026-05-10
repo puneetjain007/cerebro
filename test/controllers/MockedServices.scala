@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.auth.AuthenticationModule
+import controllers.auth.proxy.ProxyAuthConfig
 import elastic.ElasticClient
 import org.specs2.Specification
 import org.specs2.mock.Mockito
@@ -21,8 +22,10 @@ trait MockedServices extends Specification with BeforeEach with Mockito {
 
   val auth = mock[AuthenticationModule]
   auth.isEnabled returns false
+  auth.isProxyEnabled returns false
 
   val auditService = new AuditService(Configuration.from(Map("audit.enabled" -> false)))
+  val proxyAuthConfig = new ProxyAuthConfig(Configuration.empty)
 
   override def before = {
     org.mockito.Mockito.reset(client)
@@ -32,7 +35,8 @@ trait MockedServices extends Specification with BeforeEach with Mockito {
     overrides(
       bind[ElasticClient].toInstance(client),
       bind[AuthenticationModule].toInstance(auth),
-      bind[AuditService].toInstance(auditService)
+      bind[AuditService].toInstance(auditService),
+      bind[ProxyAuthConfig].toInstance(proxyAuthConfig)
     ).build()
 
   def ensure(response: Future[Result], statusCode: Int, body: JsValue) = {

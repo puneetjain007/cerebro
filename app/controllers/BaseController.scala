@@ -1,12 +1,13 @@
 package controllers
 
 import controllers.auth.{AuthRequest, AuthenticationModule}
+import controllers.auth.proxy.ProxyAuthConfig
 import exceptions.MissingRequiredParamException
 import models.{AuditEvent, CerebroRequest, CerebroResponse, Hosts}
 import play.api.Logger
 import play.api.libs.json.{JsSuccess, _}
 import play.api.mvc.{InjectedController, Result}
-import services.AuditService
+import services.{AuditService, RoleService}
 import services.exception.{InsufficientPermissionsException, RequestFailedException}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,6 +21,14 @@ trait BaseController extends InjectedController with AuthSupport {
   val hosts: Hosts
 
   val auditService: AuditService
+
+  val proxyConfig: ProxyAuthConfig
+  val rbacRoleService: RoleService
+
+  override protected def proxyAuthConfig: Option[ProxyAuthConfig] =
+    if (authentication.isProxyEnabled) Some(proxyConfig) else None
+  override protected def roleService: Option[RoleService] =
+    if (authentication.isProxyEnabled) Some(rbacRoleService) else None
 
   private val logger = Logger("application")
 
