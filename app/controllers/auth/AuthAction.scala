@@ -39,8 +39,9 @@ final class AuthAction(
 
   private def extractProxyUser[A](request: Request[A]): Option[User] = {
     for {
-      cfg     <- proxyAuthConfig
-      svc     <- roleService
+      cfg      <- proxyAuthConfig
+      svc      <- roleService
+      _        <- Option.when(cfg.isTrustedSource(request.remoteAddress))(())
       username <- request.headers.get(cfg.userHeader)
                     .orElse(request.headers.get(cfg.emailHeader))
     } yield {
@@ -63,19 +64,32 @@ final class AuthAction(
       }.getOrElse {
         if (auth.isProxyEnabled) {
           // 2. Proxy mode: resolve user from forwarded headers
-          extractProxyUser(request) match {
-            case Some(user) =>
-              auditService.foreach(_.auditAuth(
-                username  = user.name,
-                roles     = user.roles,
-                operation = "login",
-                outcome   = "success",
-                sourceIp  = Some(request.remoteAddress),
-                userAgent = request.headers.get("User-Agent")
-              ))
-              block(new AuthRequest(Some(user), request))
-            case None =>
-              Future.successful(Results.Redirect(routes.AuthController.index()))
+          val untrustedSource = proxyAuthConfig.exists(!_.isTrustedSource(request.remoteAddress))
+          if (untrustedSource) {
+            auditService.foreach(_.auditAuth(
+              username  = "unknown",
+              roles     = Set.empty,
+              operation = "login",
+              outcome   = "failure",
+              sourceIp  = Some(request.remoteAddress),
+              userAgent = request.headers.get("User-Agent")
+            ))
+            Future.successful(Results.Redirect(routes.AuthController.index()))
+          } else {
+            extractProxyUser(request) match {
+              case Some(user) =>
+                auditService.foreach(_.auditAuth(
+                  username  = user.name,
+                  roles     = user.roles,
+                  operation = "login",
+                  outcome   = "success",
+                  sourceIp  = Some(request.remoteAddress),
+                  userAgent = request.headers.get("User-Agent")
+                ))
+                block(new AuthRequest(Some(user), request))
+              case None =>
+                Future.successful(Results.Redirect(routes.AuthController.index()))
+            }
           }
         } else {
           // 3. Bearer token (OAuth API clients)

@@ -50,6 +50,7 @@ docker run -p 9000:9000 puneet1jain73/cerebro-rbac:latest
 
 **Available tags:**
 - `latest` - Latest RBAC-enabled version
+- `0.9.7-rbac` - Version 0.9.7 with audit logging and proxy auth (nginx + oauth2-proxy)
 - `0.9.6-rbac` - Version 0.9.6 with Bearer token API authentication
 - `0.9.5-rbac` - Version 0.9.5 with OAuth/OIDC + RBAC support
 - `0.9.4-rbac` - Version 0.9.4 with RBAC support
@@ -64,6 +65,64 @@ You can run cerebro listening on a different host and port(defaults to 0.0.0.0:9
 ```
 bin/cerebro -Dhttp.port=1234 -Dhttp.address=127.0.0.1
 ```
+
+#### Authentication overview
+
+By default, authentication is **disabled** — Cerebro is open to anyone who can reach the port. For any non-development deployment, set `AUTH_TYPE` to one of the four supported modes:
+
+| `AUTH_TYPE` | Description |
+|---|---|
+| `basic` | Single shared username and password |
+| `ldap` | LDAP/Active Directory bind authentication with optional group-based RBAC |
+| `oauth` | OAuth 2.0 / OIDC (Okta, Azure AD, Keycloak, Auth0, etc.) with JWT-based RBAC |
+| `proxy` | Trust identity headers from an upstream nginx + oauth2-proxy — Cerebro performs no auth itself |
+
+---
+
+#### Basic authentication
+
+The simplest auth option: a single shared username and password. All authenticated users have full admin access (no per-user RBAC in basic mode).
+
+##### Configuration
+
+```bash
+AUTH_TYPE=basic
+BASIC_AUTH_USER=admin
+BASIC_AUTH_PWD=changeme
+```
+
+Or via `application.conf`:
+
+```hocon
+auth {
+  type: basic
+  settings {
+    username = "admin"
+    password = "changeme"
+  }
+}
+```
+
+##### Docker example
+
+```bash
+docker run -d \
+  -p 9000:9000 \
+  -e AUTH_TYPE=basic \
+  -e BASIC_AUTH_USER=admin \
+  -e BASIC_AUTH_PWD=changeme \
+  puneet1jain73/cerebro-rbac:latest
+```
+
+##### Limitations
+
+- Single credential only — all users share the same account
+- No per-user roles or RBAC (everyone is effectively admin)
+- Password is passed as a plain environment variable — use Docker secrets or a secrets manager for production
+
+For per-user access control, use LDAP, OAuth, or Proxy auth instead.
+
+---
 
 #### LDAP config
 
@@ -398,6 +457,180 @@ Notes:
 - Bearer token auth returns HTTP 401 with `WWW-Authenticate: Bearer` header on invalid/expired tokens
 - Bearer token auth is only available when `AUTH_TYPE=oauth`; LDAP and Basic Auth modes are unchanged
 - RBAC is fully enforced on Bearer-authenticated requests (viewer tokens get 403 on write operations)
+
+#### Proxy Authentication (nginx + oauth2-proxy)
+
+When nginx running [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) sits in front of Cerebro, set `auth.type=proxy` to let Cerebro trust the forwarded user identity headers instead of performing its own login.
+
+##### How it works
+
+1. All browser traffic hits nginx first
+2. nginx verifies the session with oauth2-proxy (`auth_request /oauth2/auth`)
+3. oauth2-proxy injects the authenticated user's identity headers
+4. nginx forwards those headers to Cerebro
+5. Cerebro trusts the headers — no login form, no token validation
+
+##### Quick start
+
+```bash
+AUTH_TYPE=proxy
+CEREBRO_RBAC_ENABLED=true
+CEREBRO_RBAC_ROLE_MAPPING="cerebro-admins=admin;cerebro-editors=editor;cerebro-viewers=viewer"
+CEREBRO_PROXY_TRUSTED_IPS="10.0.0.1"   # IP of your nginx host — see Security below
+```
+
+##### nginx configuration
+
+```nginx
+location /oauth2/ {
+    proxy_pass http://oauth2-proxy:4180;
+    proxy_set_header Host $host;
+}
+
+location / {
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/sign_in;
+
+    auth_request_set $user   $upstream_http_x_auth_request_user;
+    auth_request_set $groups $upstream_http_x_auth_request_groups;
+    auth_request_set $email  $upstream_http_x_auth_request_email;
+
+    proxy_set_header X-Auth-Request-User   $user;
+    proxy_set_header X-Auth-Request-Groups $groups;
+    proxy_set_header X-Auth-Request-Email  $email;
+
+    proxy_pass http://cerebro:9000;
+}
+```
+
+##### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AUTH_TYPE` | — | Set to `proxy` to enable |
+| `CEREBRO_PROXY_USER_HEADER` | `X-Auth-Request-User` | Header containing the username |
+| `CEREBRO_PROXY_GROUPS_HEADER` | `X-Auth-Request-Groups` | Header containing comma-separated groups for RBAC mapping |
+| `CEREBRO_PROXY_EMAIL_HEADER` | `X-Auth-Request-Email` | Fallback header for username if user header is absent |
+| `CEREBRO_PROXY_TRUSTED_IPS` | *(empty)* | Comma-separated IPs/CIDRs that are permitted to supply proxy headers — **see Security below** |
+
+##### Roles
+
+Groups from `X-Auth-Request-Groups` are mapped to Cerebro roles using the same `CEREBRO_RBAC_ROLE_MAPPING` as LDAP and OAuth:
+
+```bash
+CEREBRO_RBAC_ENABLED=true
+CEREBRO_RBAC_ROLE_MAPPING="cerebro-admins=admin;cerebro-editors=editor;cerebro-viewers=viewer"
+CEREBRO_RBAC_DEFAULT_ROLE=viewer
+```
+
+If the user header is missing (e.g., oauth2-proxy is misconfigured or the request bypassed nginx), Cerebro redirects to `/login`.
+
+##### Security
+
+> **Important:** Without `CEREBRO_PROXY_TRUSTED_IPS`, any actor who can reach Cerebro's port directly can forge `X-Auth-Request-User` to impersonate any user.
+
+Always configure one of these two controls:
+
+1. **Trusted IP allowlist (recommended)** — Cerebro rejects proxy headers from any source not in the list:
+   ```bash
+   CEREBRO_PROXY_TRUSTED_IPS="10.0.0.1"          # exact IP
+   CEREBRO_PROXY_TRUSTED_IPS="10.0.0.1,172.16.0.0/24"  # multiple IPs/CIDRs
+   ```
+
+2. **Network policy (required in all cases)** — Ensure Cerebro's port (9000) is unreachable from outside the nginx host at the network/firewall level. The trusted IP list is defence-in-depth on top of this, not a substitute for it.
+
+Requests rejected due to untrusted source IPs are logged as `login/failure` audit events including the originating IP.
+
+##### Docker Example
+
+```bash
+docker run -d \
+  -p 127.0.0.1:9000:9000 \        # bind to loopback — only nginx on the same host can reach it
+  -e AUTH_TYPE=proxy \
+  -e CEREBRO_PROXY_TRUSTED_IPS="127.0.0.1" \
+  -e CEREBRO_RBAC_ENABLED=true \
+  -e CEREBRO_RBAC_ROLE_MAPPING="cerebro-admins=admin;cerebro-editors=editor;cerebro-viewers=viewer" \
+  -e CEREBRO_RBAC_DEFAULT_ROLE=viewer \
+  puneet1jain73/cerebro-rbac:latest
+```
+
+---
+
+#### Audit Logging
+
+Cerebro emits a structured JSON audit event for every authenticated user operation. Events are written to stdout via a dedicated `audit` logger, ready for ingestion by Splunk, Datadog, Fluentd, or any log aggregator.
+
+##### Sample event
+
+```json
+{"timestamp":"2026-05-10T09:31:44Z","type":"api","user":"alice","roles":"admin","http_method":"POST","path":"/create_index","operation":"api_request","outcome":"allowed","status_code":200,"source_ip":"10.0.1.42","user_agent":"Mozilla/5.0","target_host":"http://prod-cluster:9200","body":{"host":"prod-cluster","name":"my-index","shards":2,"replicas":1}}
+```
+
+Auth events:
+
+```json
+{"timestamp":"2026-05-10T09:30:00Z","type":"auth","user":"alice","roles":"admin","operation":"login","outcome":"success","source_ip":"10.0.1.42","user_agent":"Mozilla/5.0"}
+{"timestamp":"2026-05-10T09:31:00Z","type":"auth","user":"mallory","roles":"","operation":"login","outcome":"failure","source_ip":"10.0.1.99","user_agent":"curl/7.88.1"}
+```
+
+##### Fields
+
+| Field | Description |
+|-------|-------------|
+| `timestamp` | ISO-8601 UTC |
+| `type` | `api` for requests, `auth` for login/logout events |
+| `user` | Authenticated username (`anonymous` if unauthenticated) |
+| `roles` | Comma-separated Cerebro roles |
+| `http_method` | HTTP method of the request |
+| `path` | Cerebro route path (e.g., `/create_index`) |
+| `operation` | Operation category (`api_request`, `login`, `logout`) |
+| `outcome` | `allowed`, `denied`, `error`, `success`, or `failure` |
+| `status_code` | HTTP response status |
+| `source_ip` | Client/proxy IP address |
+| `user_agent` | `User-Agent` header |
+| `target_host` | Target Elasticsearch cluster URL |
+| `body` | Censored request body — `password` fields replaced with `xxxxxx` |
+
+##### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CEREBRO_AUDIT_ENABLED` | `true` | Set to `false` to disable all audit output |
+| `CEREBRO_AUDIT_INCLUDE_BODY` | `true` | Set to `false` to omit request body from events |
+
+Polling endpoints (`/overview`, `/nodes`, `/navbar`, `/cluster_changes`) are excluded by default to prevent log noise. To customise, set `audit.excluded-paths` in `application.conf`.
+
+##### Splunk ingestion
+
+The simplest path from stdout to Splunk:
+
+- **Docker**: use `--log-driver=splunk` with a Splunk HEC token
+- **Kubernetes**: deploy a Splunk Connect for Kubernetes sidecar that tails stdout
+- **VM**: install the Splunk Universal Forwarder and monitor the process stdout stream
+
+Each audit line is a self-contained JSON object — pipe through `jq .` to verify format before connecting a forwarder.
+
+---
+
+#### Security summary
+
+| Auth type | Who authenticates | Session cookie | Bearer token | Per-user RBAC | Trusted IP required |
+|---|---|---|---|---|---|
+| None (default) | Nobody — open access | N/A | N/A | No | No |
+| `basic` | Cerebro (single shared credential) | Yes | No | No — everyone is admin | No |
+| `ldap` | Cerebro via LDAP bind | Yes | No | Yes (group → role mapping) | No |
+| `oauth` | Cerebro via OIDC / IdP | Yes | Yes (JWT Bearer) | Yes (JWT claim → role mapping) | No |
+| `proxy` | nginx + oauth2-proxy (upstream) | Yes | No | Yes (group header → role mapping) | **Yes — strongly recommended** |
+
+**Recommendations for production:**
+
+- Never run with auth disabled (`AUTH_TYPE` unset) on a network-accessible host.
+- `basic` auth is suitable only for single-user / local dev deployments — no per-user audit trail.
+- For `ldap` and `oauth`, enable RBAC (`CEREBRO_RBAC_ENABLED=true`) and set a deny-by-default `CEREBRO_RBAC_DEFAULT_ROLE=none`.
+- For `proxy` auth, always set `CEREBRO_PROXY_TRUSTED_IPS` to the nginx host IP(s) and ensure Cerebro's port is unreachable directly from the network.
+- Enable audit logging (on by default) and ship stdout to a SIEM or log aggregator.
+
+---
 
 #### Other settings
 

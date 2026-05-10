@@ -433,6 +433,52 @@ This is a community-maintained fork with LDAP Group-Based Role-Based Access Cont
 
 **Note**: Fully backward compatible with v0.9.4-rbac. OAuth is opt-in via `AUTH_TYPE=oauth`. Existing LDAP and Basic Auth deployments are unaffected.
 
+### v0.9.7-rbac - May 10th, 2026
+
+#### New Features
+
+- **Structured JSON Audit Logging**: All authenticated user operations now emit structured JSON audit events to stdout, suitable for ingestion by Splunk, Datadog, or any log aggregator.
+  - Every API request logged with: `timestamp`, `type`, `user`, `roles`, `http_method`, `path`, `operation`, `outcome` (allowed/denied/error), `status_code`, `source_ip`, `user_agent`, `target_host`, and (optionally) the censored request body
+  - Auth events (login success/failure, logout) emitted separately for all auth types
+  - Dedicated `audit` SLF4J logger with `additivity=false` — audit JSON never leaks into `application.log`
+  - High-frequency polling endpoints excluded by default (`/overview`, `/nodes`, `/navbar`, `/cluster_changes`)
+
+- **OAuth Proxy Authentication (nginx + oauth2-proxy)**: New `auth.type=proxy` mode allows nginx running oauth2-proxy to handle all OAuth/OIDC complexity upstream and pass the authenticated user identity to Cerebro via HTTP headers.
+  - Trusts `X-Auth-Request-User`, `X-Auth-Request-Groups`, and `X-Auth-Request-Email` headers set by oauth2-proxy (all header names configurable)
+  - Groups mapped to Cerebro roles via the same `CEREBRO_RBAC_ROLE_MAPPING` system as LDAP and OAuth
+  - Missing user header redirects to `/login` (fail-safe for misconfigured proxy)
+  - **Trusted IP allowlist**: `CEREBRO_PROXY_TRUSTED_IPS` restricts header trust to specific nginx source IPs or CIDR blocks, preventing header injection from direct connections; requests from untrusted sources are rejected and audit-logged
+
+#### Configuration
+
+Audit logging:
+- `CEREBRO_AUDIT_ENABLED` — enable/disable all audit output (default: `true`)
+- `CEREBRO_AUDIT_INCLUDE_BODY` — include censored request body in audit events (default: `true`)
+- `audit.excluded-paths` in `application.conf` — add/remove polling exclusions
+
+Proxy auth:
+- `AUTH_TYPE=proxy` — enable proxy auth mode
+- `CEREBRO_PROXY_USER_HEADER` — header carrying the username (default: `X-Auth-Request-User`)
+- `CEREBRO_PROXY_GROUPS_HEADER` — header carrying comma-separated groups (default: `X-Auth-Request-Groups`)
+- `CEREBRO_PROXY_EMAIL_HEADER` — fallback username header (default: `X-Auth-Request-Email`)
+- `CEREBRO_PROXY_TRUSTED_IPS` — comma-separated IPs/CIDRs allowed to supply proxy headers (empty = no restriction)
+
+#### Security
+
+- Trusted IP allowlist (`CEREBRO_PROXY_TRUSTED_IPS`) is strongly recommended for all proxy auth deployments. Without it, any actor who can reach Cerebro's port directly can forge identity headers. CIDR notation is supported (e.g., `10.0.0.0/8`).
+- Untrusted-source rejections are emitted as `login/failure` audit events including the source IP.
+- All audit events include source IP for forensic use.
+
+#### Technical Changes
+- New: `app/services/AuditService.scala`, `app/models/AuditEvent.scala`
+- New: `app/controllers/auth/proxy/ProxyAuthConfig.scala`, `ProxyAuthService.scala`, `IpMatcher.scala`
+- Updated: `AuthenticationModule` (adds `isProxyEnabled`), `AuthAction` (proxy header resolution + IP check), `AuthSupport`, `BaseController`, all 17 controllers
+- Updated: `conf/logback.xml` (dedicated `AUDIT_STDOUT` appender), `conf/application.conf` (audit + proxy config blocks with nginx reference snippet)
+- 33 new unit tests (audit service, proxy config, IP matcher, group-to-role mapping); total test count: 160
+
+#### Compatibility
+- Fully backward compatible. Both features are opt-in: audit logging is on by default but silently disabled in existing tests; proxy auth requires `AUTH_TYPE=proxy`.
+
 ### v0.9.6-rbac - April 2nd, 2026
 
 #### New Features
