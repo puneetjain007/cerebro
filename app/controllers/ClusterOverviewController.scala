@@ -3,6 +3,7 @@ package controllers
 import javax.inject.Inject
 
 import controllers.auth.AuthenticationModule
+import services.AuditService
 import elastic.{ElasticClient, Error}
 import models.overview.ClusterOverview
 import models.{CerebroResponse, Hosts, ShardStats}
@@ -13,6 +14,7 @@ import scala.concurrent.Future
 
 class ClusterOverviewController @Inject()(val authentication: AuthenticationModule,
                                           val hosts: Hosts,
+                                  val auditService: AuditService,
                                           val service: OverviewDataService,
                                           client: ElasticClient) extends BaseController {
 

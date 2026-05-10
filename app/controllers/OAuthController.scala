@@ -4,7 +4,8 @@ import controllers.auth.{AuthAction, AuthenticationModule}
 import controllers.auth.oauth.{OAuthConfig, OAuthService}
 import play.api.Logging
 import play.api.libs.ws.WSClient
-import play.api.mvc.{Cookie, DiscardingCookie, InjectedController}
+import play.api.mvc.{Cookie, DiscardingCookie, InjectedController, Request}
+import services.AuditService
 
 import java.security.SecureRandom
 import java.util.Base64
@@ -15,7 +16,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class OAuthController @Inject()(
   oauthConfig: OAuthConfig,
   oauthService: OAuthService,
-  ws: WSClient
+  ws: WSClient,
+  auditService: AuditService
 )(implicit ec: ExecutionContext) extends InjectedController with Logging {
 
   private val secureRandom = new SecureRandom()
@@ -90,6 +92,14 @@ class OAuthController @Inject()(
             case Some(user) =>
               val redirectUrl = request.session.get(AuthAction.REDIRECT_URL).getOrElse("/")
               logger.info(s"OAuth login successful for user ${user.name} with roles ${user.roles}")
+              auditService.auditAuth(
+                username  = user.name,
+                roles     = user.roles,
+                operation = "login",
+                outcome   = "success",
+                sourceIp  = Some(request.remoteAddress),
+                userAgent = request.headers.get("User-Agent")
+              )
               Redirect(redirectUrl).withSession(
                 AuthAction.SESSION_USER -> user.name,
                 AuthAction.SESSION_ROLES -> user.roles.mkString(",")
@@ -99,17 +109,41 @@ class OAuthController @Inject()(
               )
             case None =>
               logger.warn("OAuth token validation failed")
+              auditService.auditAuth(
+                username  = "unknown",
+                roles     = Set.empty,
+                operation = "login",
+                outcome   = "failure",
+                sourceIp  = Some(request.remoteAddress),
+                userAgent = request.headers.get("User-Agent")
+              )
               Redirect(routes.OAuthController.authorize())
                 .discardingCookies(DiscardingCookie(OAuthStateCookie), DiscardingCookie(OAuthNonceCookie))
           }
         } else {
           logger.error(s"OAuth token exchange failed with status ${response.status}: ${response.body}")
+          auditService.auditAuth(
+            username  = "unknown",
+            roles     = Set.empty,
+            operation = "login",
+            outcome   = "failure",
+            sourceIp  = Some(request.remoteAddress),
+            userAgent = request.headers.get("User-Agent")
+          )
           Redirect(routes.OAuthController.authorize())
             .discardingCookies(DiscardingCookie(OAuthStateCookie), DiscardingCookie(OAuthNonceCookie))
         }
       }.recover {
         case e: Exception =>
           logger.error("OAuth token exchange error", e)
+          auditService.auditAuth(
+            username  = "unknown",
+            roles     = Set.empty,
+            operation = "login",
+            outcome   = "error",
+            sourceIp  = Some(request.remoteAddress),
+            userAgent = request.headers.get("User-Agent")
+          )
           Redirect(routes.OAuthController.authorize())
             .discardingCookies(DiscardingCookie(OAuthStateCookie), DiscardingCookie(OAuthNonceCookie))
       }

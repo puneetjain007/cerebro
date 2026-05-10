@@ -5,11 +5,13 @@ import elastic.ElasticClient
 import org.specs2.Specification
 import org.specs2.mock.Mockito
 import org.specs2.specification.BeforeEach
+import play.api.Configuration
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.mvc.Result
 import play.api.test.Helpers.{contentAsJson, _}
+import services.AuditService
 
 import scala.concurrent.Future
 
@@ -20,6 +22,8 @@ trait MockedServices extends Specification with BeforeEach with Mockito {
   val auth = mock[AuthenticationModule]
   auth.isEnabled returns false
 
+  val auditService = new AuditService(Configuration.from(Map("audit.enabled" -> false)))
+
   override def before = {
     org.mockito.Mockito.reset(client)
   }
@@ -27,7 +31,8 @@ trait MockedServices extends Specification with BeforeEach with Mockito {
   val application = new GuiceApplicationBuilder().
     overrides(
       bind[ElasticClient].toInstance(client),
-      bind[AuthenticationModule].toInstance(auth)
+      bind[AuthenticationModule].toInstance(auth),
+      bind[AuditService].toInstance(auditService)
     ).build()
 
   def ensure(response: Future[Result], statusCode: Int, body: JsValue) = {

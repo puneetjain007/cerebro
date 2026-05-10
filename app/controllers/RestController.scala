@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat
 
 import javax.inject.Inject
 import controllers.auth.AuthenticationModule
+import services.AuditService
 import dao.{DAOException, RestHistoryDAO, RestRequest}
 import elastic.{ElasticClient, Error, Success}
 import models.rest.AutocompletionIndices
@@ -18,6 +19,7 @@ import play.api.Logger
 
 class RestController @Inject()(val authentication: AuthenticationModule,
                                val hosts: Hosts,
+                               val auditService: AuditService,
                                client: ElasticClient,
                                restHistoryDAO: RestHistoryDAO) extends BaseController {
 
